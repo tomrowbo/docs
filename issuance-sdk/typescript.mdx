@@ -1,0 +1,207 @@
+---
+title: "TypeScript SDK"
+description: "TypeScript SDK for POW Cards integration"
+---
+
+## Installation
+
+Install the POW Cards TypeScript SDK:
+
+```bash
+npm install @passentry/pow-cards-client
+```
+
+## Usage with React and Solana Wallet Adapter
+
+The most common use case is integrating POW Cards with React and the Solana Wallet Adapter. Here's a complete example:
+
+```typescript
+import { useWallet } from "@solana/wallet-adapter-react";
+import {
+  ClaimsApi,
+  VerifySignatureAndCreatePassRequestWalletTypeEnum,
+} from "@passentry/pow-cards-client";
+import bs58 from "bs58";
+import { useState } from "react";
+
+export const useWalletSignIn = () => {
+  const { publicKey, signMessage, wallet } = useWallet();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const signIn = async () => {
+    if (!publicKey || !signMessage) {
+      throw new Error("Wallet not connected");
+    }
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      // 1. Initialize the Claims API client
+      const claimsApi = new ClaimsApi();
+
+      // 2. Get sign-in data from backend
+      const initResponse = await claimsApi.initializeClaimProcess({
+        publicKey: publicKey.toBase58(),
+      });
+
+      // 3. Request signature from wallet
+      const encodedMessage = new TextEncoder().encode(initResponse.message);
+      const signature = await signMessage(encodedMessage);
+      
+      // 4. Verify signature and create pass
+      const verifyResponse = await claimsApi.verifySignatureAndCreatePass({
+        verifySignatureAndCreatePassRequest: {
+          message: initResponse.message,
+          publicKey: publicKey.toBase58(),
+          signature: bs58.encode(signature),
+          walletType:
+            (wallet?.adapter
+              .name as VerifySignatureAndCreatePassRequestWalletTypeEnum) ||
+            "Generic",
+        },
+      });
+      setIsSuccess(true);
+      return verifyResponse;
+    } catch (err) {
+      setError("Error with your request. Please try again.");
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  return { signIn, isLoading, error, isSuccess };
+};
+```
+
+## Using the Hook
+
+Implement the wallet connection and sign-in flow in your component:
+
+```typescript
+import { useWallet } from "@solana/wallet-adapter-react";
+import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
+import { useWalletSignIn } from "../hooks/useWalletSignIn";
+function WalletSignIn() {
+  const { connected } = useWallet();
+  const { signIn, isLoading, error, isSuccess } = useWalletSignIn();
+  const handleSignIn = async () => {
+    try {
+      const response = await signIn();
+      // Redirect to pass download page
+      window.location.href = response.downloadUrl;
+    } catch (err) {
+      console.error("Sign-in failed:", err);
+    }
+  };
+  return (
+    <div>
+      {!connected ? (
+        <WalletMultiButton />
+      ) : (
+        <button onClick={handleSignIn} disabled={isLoading}>
+          {isLoading ? "Creating Pass..." : "Create POW Card"}
+        </button>
+      )}
+      {error && <div className="error">{error}</div>}
+      {isSuccess && (
+        <div className="success">POW Card created successfully!</div>
+      )}
+    </div>
+  );
+}
+```
+
+## SDK Reference
+
+### ClaimsApi
+
+The main class for interacting with the POW Cards API.
+
+#### Methods
+
+##### `initializeClaimProcess`
+
+Initializes the claim process by generating a sign-in message.
+
+```typescript
+async initializeClaimProcess(request: { publicKey: string }): Promise<InitializeClaimProcess200Response>
+```
+
+Parameters:
+
+- `publicKey`: Solana wallet public key (string)
+
+Returns:
+
+- `domain`: Domain requesting the signature
+- `nonce`: Random nonce for the request
+- `issuedAt`: Timestamp of the request
+- `message`: Complete message to be signed
+
+##### `verifySignatureAndCreatePass`
+
+Verifies the signature and creates a wallet pass.
+
+```typescript
+async verifySignatureAndCreatePass(request: {
+verifySignatureAndCreatePassRequest: {
+message: string;
+signature: string;
+publicKey: string;
+walletType?: VerifySignatureAndCreatePassRequestWalletTypeEnum;
+}
+}): Promise<VerifySignatureAndCreatePass200Response>
+```
+
+Parameters:
+
+- `message`: The signed message from initializeClaimProcess
+- `signature`: Base58 encoded signature
+- `publicKey`: Solana wallet public key
+- `walletType`: Type of wallet used for signing (optional, defaults to "Generic")
+
+Returns:
+
+- `downloadUrl`: URL to download the created pass
+
+### Supported Wallet Types
+
+The SDK automatically detects the wallet type using the Solana wallet adapter. Supported wallet types include:
+
+- `Generic` (default)
+- `Phantom`
+- `Solflare`
+- `Coinbase Wallet`
+- `MathWallet`
+- `SafePal`
+- `Clover`
+- `Coin98`
+- `HyperPay`
+- `Krystal`
+- `ONTO`
+- `TokenPocket`
+- `Trust`
+
+## Error Handling
+
+The SDK includes TypeScript types for all error responses. Common error scenarios:
+
+```typescript
+try {
+  await claimsApi.verifySignatureAndCreatePass(/ ... /);
+} catch (error) {
+  if (error instanceof ApiErrorResponse) {
+    console.error(error.details || error.error);
+  }
+}
+```
+
+Error types include:
+
+- 400: Invalid request parameters
+- 401: Verification failed
+- 429: Rate limit exceeded
+- 500: Internal server error
+
+For more details on the available endpoints and responses, see the [API Reference](/api-reference/overview).

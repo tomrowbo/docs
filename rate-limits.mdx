@@ -1,0 +1,33 @@
+---
+title: 'Rate Limits'
+description: 'To ensure service stability and fair usage, POW Cards implements rate limiting on API endpoints.'
+---
+
+## Limits by Endpoint
+
+| Endpoint | Rate Limit | Window |
+| -------- | ---------- | ------ |
+| `GET /claim/init` | 100 requests | 15 minutes |
+| `POST /claim/wallet-pass` | 100 requests | 15 minutes |
+
+## Rate Limit Response
+
+When you exceed the rate limit, the API will respond with a `429 Too Many Requests` status code: 
+```json Response
+{
+"error": "Too many requests",
+"details": "Rate limit exceeded. Please try again in X minutes"
+}
+```
+
+## Best Practices
+
+To avoid hitting rate limits:
+
+- Perform signatures and network requests on the client-side if possible
+- Implement exponential backoff for retries
+
+
+## Enterprise Limits
+
+If you need higher rate limits for your application, please [contact us](mailto:info@passentry.com) to discuss enterprise options.

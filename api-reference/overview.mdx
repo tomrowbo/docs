@@ -1,0 +1,41 @@
+---
+title: 'API Reference'
+description: 'Welcome to the POW Cards API reference. Our API follows RESTful conventions and provides endpoints for health checks and claim management.
+'
+---
+## Base URL
+
+All API endpoints are relative to:
+
+```bash
+https://api.pow.cards/api/v1
+```
+
+## Response Format
+
+All responses are returned in JSON format. Successful responses will have a 2xx status code, while errors will have 4xx or 5xx status codes.
+
+### Success Response
+
+```json
+{
+  "status": "healthy"
+}
+```
+
+### Error Response
+
+```json
+{
+  "error": "Error message",
+  "details": "Detailed error description"
+}
+```
+
+## Rate Limiting
+
+The API implements rate limiting:
+- 100 requests per 15 minutes for claim endpoints
+- Standard rate limits for health check endpoints
+
+When rate limited, you'll receive a `429 Too Many Requests` response.

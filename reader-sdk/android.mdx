@@ -1,0 +1,76 @@
+---
+title: 'Android Reader SDK'
+description: 'Guide for integrating the POW Cards Reader Library into your Android application'
+---
+*Note: This SDK is in beta and will be publicly available shortly*
+
+## Prerequisites
+
+Before you begin, ensure you have:
+- Android device with SDK 25+
+- POW Cards Reader Library AAR file
+
+## Installation
+
+### Gradle Setup
+
+Add the POW Cards Reader Library to your project by placing `androidcore-powcards-reader-release.aar` in your `/libs` directory and adding the following to your `build.gradle`:
+
+```gradle
+dependencies {
+    implementation(files("libs/androidcore-powcards-reader-release.aar"))
+    
+    implementation("org.bouncycastle:bcpkix-jdk15on:1.67")
+    implementation("com.madgag.spongycastle:bcpkix-jdk15on:1.58.0.0")
+    implementation("com.madgag.spongycastle:bcpg-jdk15on:1.58.0.0")
+}
+```
+
+## Integration
+
+### NFC Reader Setup
+
+First, implement the NFC reader callback in your Activity:
+
+```kotlin
+class MainActivity : ComponentActivity(), NfcAdapter.ReaderCallback {
+    private fun startNfcReader() {
+        val nfcAdapter = NfcAdapter.getDefaultAdapter(this)
+        var flags = NfcAdapter.FLAG_READER_NFC_A
+        flags = flags or NfcAdapter.FLAG_READER_SKIP_NDEF_CHECK
+        flags = flags or NfcAdapter.FLAG_READER_NO_PLATFORM_SOUNDS
+        nfcAdapter.enableReaderMode(this, this, flags, null)
+    }
+}
+```
+
+### Reader Configuration
+
+Initialize the POW Cards reader:
+
+```kotlin
+// Initialize reader
+val androidCorePassReader = AndroidCorePassReader()
+
+// Handle NFC tag discovery
+override fun onTagDiscovered(tag: Tag) {
+    val passId = androidCorePassReader.readPassId(tag)
+}
+```
+
+## Error Handling
+
+The SDK throws the following exceptions:
+
+| Exception | Description |
+|-----------|-------------|
+| `DeviceRemovedTooSoonException` | Tag was removed before reading completed |
+| `NotSmartTagException` | Incompatible NFC tag detected |
+| `SmartTagException` | General error during tag scanning |
+
+## Support
+
+Need help? Contact us at [info@passentry.com](mailto:info@passentry.com) for:
+- Integration assistance
+- Credential requests
+- Technical support 

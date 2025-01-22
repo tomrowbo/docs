@@ -1,0 +1,237 @@
+---
+title: 'Solana Wallet Integration'
+description: 'This guide explains how to properly integrate Solana wallet authentication with POW Cards.'
+---
+
+## Installation
+
+First, install the required Solana wallet adapter packages:
+
+```bash
+npm install \
+  @solana/wallet-adapter-react \
+  @solana/wallet-adapter-react-ui \
+  @solana/wallet-adapter-wallets \
+  @solana/web3.js
+```
+
+## Wallet Provider Setup
+
+Wrap your application with the necessary Solana wallet providers:
+
+```typescript
+import { WalletProvider } from '@solana/wallet-adapter-react';
+import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
+import { PhantomWalletAdapter } from '@solana/wallet-adapter-wallets';
+import { useMemo } from 'react';
+
+// Import the styles
+import '@solana/wallet-adapter-react-ui/styles.css';
+
+function App() {
+  // Initialize wallets you want to support
+  const wallets = useMemo(
+    () => [
+      new PhantomWalletAdapter(),
+      // Add other wallet adapters as needed
+    ],
+    []
+  );
+
+  return (
+    <WalletProvider wallets={wallets} autoConnect>
+      <WalletModalProvider>
+        <YourApp />
+      </WalletModalProvider>
+    </WalletProvider>
+  );
+}
+```
+
+## Creating a Sign-In Hook
+
+Create a custom hook to handle the wallet sign-in flow:
+
+```typescript
+import { useWallet } from '@solana/wallet-adapter-react';
+import { useState } from 'react';
+import { WalletPassResponse } from '../types/auth';
+
+export const useWalletSignIn = () => {
+  const { publicKey, signMessage, wallet } = useWallet();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isSuccess, setIsSuccess] = useState(false);
+
+  const signIn = async (): Promise<WalletPassResponse> => {
+    if (!publicKey) {
+      setError('Please connect your wallet first');
+      throw new Error('Wallet not connected');
+    }
+
+    try {
+      setIsLoading(true);
+      setError(null);
+      setIsSuccess(false);
+
+      // 1. Get sign-in data from backend
+      const response = await fetch(
+        `${apiUrl}/api/v1/claim/init?publicKey=${publicKey.toBase58()}`
+      );
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.details || data.error || 'Failed to initialize');
+      }
+
+      // 2. Create and encode message
+      const message = new TextEncoder().encode(data.message);
+      
+      // 3. Request signature from wallet
+      const signature = await signMessage!(message);
+      
+      // 4. Send signature to backend
+      const verifyResponse = await fetch(`${apiUrl}/api/v1/claim/wallet-pass`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: data.message,
+          publicKey: publicKey.toBase58(),
+          signature: bs58.encode(signature),
+          walletType: wallet?.adapter.name || 'Generic'
+        }),
+      });
+
+      const verifyData = await verifyResponse.json();
+      
+      if (!verifyResponse.ok) {
+        throw new Error(verifyData.details || verifyData.error);
+      }
+      
+      setIsSuccess(true);
+      return verifyData;
+
+    } catch (err) {
+      setError('Error with your request. Please try again.');
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return { signIn, isLoading, error, isSuccess };
+};
+```
+
+## Using the Sign-In Hook
+
+Implement the wallet connection and sign-in flow in your component:
+
+```typescript
+import { useWallet } from '@solana/wallet-adapter-react';
+import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
+import { useWalletSignIn } from '../hooks/useWalletSignIn';
+
+function WalletSignIn() {
+  const { connected } = useWallet();
+  const { signIn, isLoading, error, isSuccess } = useWalletSignIn();
+
+  const handleSignIn = async () => {
+    try {
+      const response = await signIn();
+      // Handle successful sign-in (e.g., redirect to download page)
+      window.location.href = response.downloadUrl;
+    } catch (err) {
+      // Error is handled by the hook
+      console.error('Sign-in failed:', err);
+    }
+  };
+
+  return (
+    <div>
+      {!connected ? (
+        <WalletMultiButton />
+      ) : (
+        <button 
+          onClick={handleSignIn}
+          disabled={isLoading}
+        >
+          {isLoading ? 'Signing...' : 'Create POW Card'}
+        </button>
+      )}
+      
+      {error && <div className="error">{error}</div>}
+      {isSuccess && <div className="success">POW Card created successfully!</div>}
+    </div>
+  );
+}
+```
+
+## Error Handling
+
+The integration includes built-in error handling for common scenarios:
+- Wallet not connected
+- User rejected signature request
+- Network errors
+- Invalid responses from the server
+
+## Best Practices
+
+1. **Connection State**: Always check if the wallet is connected before attempting to sign messages.
+
+2. **Loading States**: Show appropriate loading indicators during async operations.
+
+3. **Error Handling**: Display user-friendly error messages and provide clear next steps.
+
+4. **Auto Connect**: Consider enabling `autoConnect` in the WalletProvider for better UX.
+
+5. **Multiple Wallets**: Support multiple wallet providers to give users choice.
+
+For more details on the available endpoints and responses, see the [API Reference](/api-reference/overview).
+
+## Wallet Type Detection
+
+The wallet type is automatically detected using the Solana wallet adapter:
+```typescript
+import { useWallet } from '@solana/wallet-adapter-react';
+
+export const useWalletSignIn = () => {
+  const { publicKey, signMessage, wallet } = useWallet();
+  
+  const signIn = async () => {
+    // ...
+    const verifyResponse = await fetch(`${apiUrl}/api/v1/claim/wallet-pass`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        message,
+        publicKey: publicKey.toBase58(),
+        signature: bs58.encode(signature),
+        walletType: wallet?.adapter.name || 'Generic' // Uses wallet adapter's name
+      }),
+    });
+    // ...
+  };
+};
+```
+
+The `wallet.adapter.name` property automatically provides the correct wallet type. While the wallet type doesn't affect the pass functionality itself, it determines which wallet app will be opened when users tap on the pass in their digital wallet. Supported wallet types include:
+- `Generic` (default)
+- `Phantom`
+- `Solflare`
+- `Coinbase Wallet`
+- `MathWallet`
+- `SafePal`
+- `Clover`
+- `Coin98`
+- `HyperPay`
+- `Krystal`
+- `ONTO`
+- `TokenPocket`
+- `Trust`
+
+This allows for a more seamless user experience as users can quickly access their preferred wallet application directly from the pass.

@@ -1,71 +1,58 @@
 ---
-title: Introduction
-description: "Welcome to the home of your new documentation"
+title: 'Introduction'
+description: 'Welcome to the POW Cards API documentation'
 ---
 
-<img
-  className="block dark:hidden"
-  src="/images/hero-light.svg"
-  alt="Hero Light"
-/>
-<img
-  className="hidden dark:block"
-  src="/images/hero-dark.svg"
-  alt="Hero Dark"
-/>
+# POW Cards API
 
-## Setting up
+POW Cards enables you to create digital wallet cards authenticated with Solana wallets. Our API provides a simple way to verify wallet ownership and generate passes that can be added to Apple Wallet and Google Wallet.
 
-The first step to world-class documentation is setting up your editing environments.
+## Key Features
+
+- **Solana Wallet Authentication** - Securely verify wallet ownership
+- **Digital Wallet Passes** - Generate passes compatible with Apple Wallet and Google Pay
+- **Simple Integration** - RESTful API with comprehensive SDK support
+- **Reader Library** - Securely read a POW Card Wallet Address
+
+## Use Cases
 
 <CardGroup cols={2}>
-  <Card
-    title="Edit Your Docs"
-    icon="pen-to-square"
-    href="https://mintlify.com/docs/quickstart"
-  >
-    Get your docs set up locally for easy development
+   <Card title="Loyalty Programs" icon="star">
+    Build Web3 loyalty programs with wallet verification
   </Card>
-  <Card
-    title="Preview Changes"
-    icon="image"
-    href="https://mintlify.com/docs/development"
-  >
-    Preview your changes before you push to make sure they're perfect
+ <Card title="Event Tickets" icon="ticket">
+    Create digital tickets verified by NFT ownership
+  </Card>
+  <Card title="Access Passes" icon="key">
+    Control access to exclusive content or events
   </Card>
 </CardGroup>
 
-## Make it yours
+## Getting Started
 
-Update your docs to your brand and add valuable content for the best user conversion.
+Three ways to integrate POW Cards:
 
-<CardGroup cols={2}>
-  <Card
-    title="Customize Style"
-    icon="palette"
-    href="https://mintlify.com/docs/settings/global"
-  >
-    Customize your docs to your company's colors and brands
+<CardGroup cols={3}>
+  <Card title="Direct API Integration" icon="globe" href="/api-reference/overview">
+    Use our RESTful API endpoints directly for maximum flexibility
   </Card>
-  <Card
-    title="Reference APIs"
-    icon="code"
-    href="https://mintlify.com/docs/api-playground/openapi"
-  >
-    Automatically generate endpoints from an OpenAPI spec
+  <Card title="Pass Issuance SDK" icon="code" href="/issuance-sdk/typescript">
+    Optional SDK to issue POW Cards for rapid development
   </Card>
-  <Card
-    title="Add Components"
-    icon="screwdriver-wrench"
-    href="https://mintlify.com/docs/content/components/accordions"
-  >
-    Build interactive features and designs to guide your users
-  </Card>
-  <Card
-    title="Get Inspiration"
-    icon="stars"
-    href="https://mintlify.com/customers"
-  >
-    Check out our showcase of our favorite documentation
+  <Card title="Reader SDK" icon="mobile" href="/reader-sdk/android">
+    Android SDK for reading POW Cards via NFC
   </Card>
 </CardGroup>
+
+## Integration Steps
+
+1. Review the [API Reference](/api-reference/overview)
+2. Follow our [quickstart guide](/quickstart)
+3. Implement [Solana wallet integration](/guides/solana-wallet-integration)
+
+## Support
+
+Need help? Contact us:
+
+- Email: [info@passentry.com](mailto:info@passentry.com)
+- GitHub: [Report issues](https://github.com/PassEntry/pow-cards-api/issues)

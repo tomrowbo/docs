@@ -1,0 +1,202 @@
+---
+title: 'Error Handling'
+description: 'Learn how to handle common errors when integrating POW Cards'
+---
+
+# Error Handling Guide
+
+This guide covers common errors you might encounter when integrating POW Cards and how to handle them effectively.
+
+## Wallet Connection Errors
+
+### Wallet Not Connected 
+
+```typescript
+if (!publicKey || !signMessage) {
+  setError('Please connect your wallet first');
+  throw new Error('Wallet not connected');
+}
+```
+
+Common causes:
+- User hasn't connected their wallet
+- Wallet connection was lost
+- Wallet adapter not properly initialized
+
+Solution:
+- Ensure the wallet connection UI is visible (`<WalletMultiButton />`)
+- Check wallet connection state before operations
+- Implement auto-reconnect logic
+
+### Wallet Adapter Missing
+
+```typescript
+// Proper wallet adapter setup
+const wallets = useMemo(
+  () => [
+    new PhantomWalletAdapter(),
+    // Add other supported wallets
+  ],
+  []
+);
+```
+
+Solution:
+- Verify wallet adapter packages are installed
+- Check wallet initialization in your provider setup
+- Include all supported wallet adapters
+
+## Signature Errors
+
+### User Rejected Signature
+
+```typescript
+try {
+  const signature = await signMessage(message);
+} catch (err) {
+  if (err.message.includes('User rejected')) {
+    setError('Please approve the signature request to continue');
+    return;
+  }
+  throw err;
+}
+```
+
+Common causes:
+- User declined the signature request
+- Wallet popup was closed
+- Transaction timed out
+
+Solution:
+- Provide clear instructions to users
+- Handle rejection gracefully with retry option
+- Show helpful error messages
+
+## API Errors
+
+### Network Errors
+
+```typescript
+try {
+  const response = await fetch(`${apiUrl}/api/v1/claim/init`);
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.details || errorData.error || 'API request failed');
+  }
+} catch (err) {
+  if (err instanceof TypeError && err.message === 'Failed to fetch') {
+    setError('Network error. Please check your connection.');
+    return;
+  }
+  throw err;
+}
+```
+
+Common HTTP Status Codes:
+- `400` - Bad Request (invalid parameters)
+- `401` - Unauthorized (invalid signature)
+- `429` - Too Many Requests (rate limit exceeded)
+- `500` - Server Error
+
+### Rate Limiting
+
+```typescript
+if (response.status === 429) {
+  const retryAfter = response.headers.get('Retry-After');
+  setError(`Rate limit exceeded. Please try again in ${retryAfter} seconds`);
+  return;
+}
+```
+
+Solution:
+- Implement exponential backoff
+- Respect rate limits
+- Show appropriate waiting messages
+
+## Best Practices
+
+### 1. Graceful Error Recovery
+
+```typescript
+const handleSignIn = async () => {
+  try {
+    setIsLoading(true);
+    const response = await signIn();
+    handleSuccess(response);
+  } catch (err) {
+    handleError(err);
+  } finally {
+    setIsLoading(false);
+  }
+};
+```
+
+### 2. User-Friendly Messages
+
+```typescript
+const handleError = (err: Error) => {
+  const userMessages = {
+    'Wallet not connected': 'Please connect your wallet to continue',
+    'User rejected': 'You need to approve the signature request',
+    'Rate limit exceeded': 'Please wait a moment before trying again',
+    // Add more user-friendly messages
+  };
+
+  const message = userMessages[err.message] || 'An error occurred. Please try again.';
+  setError(message);
+};
+```
+
+### 3. Loading States
+
+```typescript
+return (
+  <div>
+    <button 
+      onClick={handleSignIn}
+      disabled={isLoading}
+    >
+      {isLoading ? 'Processing...' : 'Create POW Card'}
+    </button>
+    {isLoading && <LoadingSpinner />}
+  </div>
+);
+```
+
+## API Response Errors
+
+The API returns standard HTTP status codes along with detailed error messages:
+
+| HTTP Status | Description | Example Response |
+|------------|-------------|------------------|
+| `400` | Bad Request - Invalid parameters or message format | `{ "error": "Invalid parameters", "details": "Missing signature" }` |
+| `401` | Unauthorized - Invalid signature | `{ "error": "Unauthorized", "details": "Invalid signature" }` |
+| `429` | Too Many Requests - Rate limit exceeded | `{ "error": "Rate limit exceeded", "details": "Please try again in 60 seconds" }` |
+| `500` | Server Error - Internal server error | `{ "error": "Internal server error" }` |
+
+Example error response type:
+
+```typescript
+interface ApiErrorResponse {
+  error: string;
+  details?: string;
+}
+```
+
+Error handling in the application:
+
+```typescript
+try {
+  const response = await fetch(`${apiUrl}/api/v1/claim/init`);
+  const data = await response.json();
+  
+  if (!response.ok) {
+    throw new Error(data.details || data.error || 'API request failed');
+  }
+} catch (err) {
+  // Handle the error appropriately
+  setError('Error with your request. Please try again or contact support.');
+}
+```
+
+For more details on API responses, see the [API Reference](/api-reference/overview).

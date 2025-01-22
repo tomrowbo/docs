@@ -1,0 +1,28 @@
+---
+title: 'GET /claim/init'
+description: 'Initialize claim process'
+api: 'GET https://api.pow.cards/api/v1/claim/init'
+---
+
+Initialize a claim process by generating a sign-in message.
+
+### Query Parameters
+
+<ParamField query="publicKey" type="string" required>
+  The Solana wallet public key
+</ParamField>
+
+### Response
+
+<CodeGroup>
+
+```json Response
+{
+  "domain": "pow.cards",
+  "nonce": "Aa7bCd3f",
+  "issuedAt": "2024-03-14T12:00:00Z",
+  "message": "pow.cards wants you to create a POW card with your Solana account:\nGg7Q5nmWKL2UygFr6BJRoAE6GkJ3dsHfCZ7N8s3yG6Fe\n\nNonce: Aa7bCd3f\nIssued At: 2024-03-14T12:00:00Z"
+}
+```
+
+</CodeGroup> 
